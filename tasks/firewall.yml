@@ -1,0 +1,99 @@
+#- name: Check zones
+#  ansible.builtin.command: firewall-cmd --list-all-zones
+#  register: all_zones
+
+#- name: Create zones
+#  ansible.builtin.shell:
+#    cmd: "firewall-cmd --permanent --new-zone {{ item.zone }}"
+#  notify:
+#    - firewall-cmd-reload
+#  loop: "{{ firewalld.zones }}"
+#  when: not item.zone in all_zones.stdout
+
+#- name: Enable zones
+#  ansible.posix.firewalld:
+#    zone: "{{ item.zone }}"
+#    permanent: true
+#   state: enabled
+#    interface: "{{ item.zone }}"
+#  notify:
+#    - firewall-cmd-reload
+#  loop: "{{ firewalld.zones }}"
+
+#- name: firewall-cmd-reload
+#  ansible.builtin.command:
+#    cmd: firewall-cmd --reload
+
+#- name: Set interface
+#  ansible.posix.firewalld:
+#    zone: "{{ item.zone }}"
+#    permanent: yes
+#    interface: "{{ item.interface }}"
+#    state: enabled
+#  notify:
+#    - firewall-cmd-reload
+#  loop: "{{ firewalld.zones }}"
+
+- name: Set interface
+  ansible.builtin.shell:
+    cmd: "firewall-cmd --zone={{ item.zone }} --add-interface={{ item.interface }} --permanent"
+  notify:
+    - firewall-cmd-reload
+  loop: "{{ firewalld.zones }}"
+
+- name: Open public Ports
+  ansible.posix.firewalld:
+    permanent: yes
+    port: "{{ item.port }}"
+    zone: "{{ item.zone }}"
+    state: enabled
+  loop: "{{ firewalld.open_ports }}"
+  notify:
+    - firewall-cmd-reload
+
+#- name: Set target
+#  ansible.posix.firewalld:
+#    zone: "{{ item.zone }}"
+#    permanent: true
+#    target: "{{ item.target }}"
+#    state: enabled
+#  notify:
+#    - firewall-cmd-reload
+#  loop: "{{ firewalld.zones }}"
+
+#- name: Set IPv4 source
+#  ansible.posix.firewalld:
+#    zone: "{{ item.zone }}"
+#    permanent: true
+#    state: enabled
+#  notify:
+#    - firewall-cmd-reload#
+#loop: "{{ firewalld.zones }}"
+
+
+#- name: Set IPv6 source
+#  ansible.posix.firewalld:
+#    zone: "{{ item.zone }}"
+#    permanent: true
+#    state: enabled
+#  notify:
+#    - firewall-cmd-reload
+#  loop: "{{ firewalld.zones }}"
+#  when: item.ipv6_source is defined
+
+# IP Masq
+- name: Set IP masq
+  ansible.posix.firewalld:
+    masquerade: yes
+    state: enabled
+    permanent: yes
+    zone: "{{ item.zone }}"
+  loop: "{{ firewalld.zones }}"
+  when: item.masq == True
+
+# IP Forward
+#- name: Set IP forward
+#  ansible.builtin.shell:
+#    cmd: "firewall-cmd --permanent --zone={{ item.zone }} --add-forward"
+#  loop: "{{ firewalld.zones }}"
+#  when: item.forward == True
